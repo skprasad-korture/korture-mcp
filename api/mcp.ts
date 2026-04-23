@@ -6,10 +6,39 @@ import { z } from "zod";
 const API_BASE = "https://hire.korture.com/api/v1";
 const APP_BASE = "https://hire.korture.com";
 
-function createServer(): McpServer {
+/**
+ * Identify the calling MCP client from the HTTP User-Agent.
+ * Cheap heuristic, used for the X-Korture-Client header — REST resolveAuth
+ * treats this as a hint (not a trust boundary).
+ */
+function inferClient(userAgent: string): string {
+  const ua = (userAgent ?? "").toLowerCase();
+  if (/claude/.test(ua)) return "claude-desktop";
+  if (/chatgpt|openai/.test(ua)) return "chatgpt";
+  if (/cursor/.test(ua)) return "cursor";
+  if (/continue/.test(ua)) return "continue";
+  return "mcp-client";
+}
+
+interface CreateServerOptions {
+  /**
+   * Headers forwarded on every REST call to hire.korture.com so that the
+   * unified resolveAuth middleware can attribute the request, apply tier
+   * limits, and log with channel="mcp".
+   */
+  forwardHeaders: Record<string, string>;
+}
+
+function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
+  const baseJsonHeaders = {
+    "Content-Type": "application/json",
+    ...forwardHeaders,
+  };
+  const baseGetHeaders = { ...forwardHeaders };
+
   const server = new McpServer({
     name: "korture-mcp-server",
-    version: "1.0.0",
+    version: "1.1.0",
   });
 
   // ── Tool 1: validate_jd ─────────────────────────────────────────────
@@ -39,7 +68,7 @@ function createServer(): McpServer {
       try {
         const response = await fetch(`${API_BASE}/jd/validate`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: baseJsonHeaders,
           body: JSON.stringify({ jd_text }),
         });
         const data = await response.json();
@@ -126,14 +155,13 @@ function createServer(): McpServer {
       try {
         const response = await fetch(`${API_BASE}/brief/create`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: baseJsonHeaders,
           body: JSON.stringify({
             role_title,
             jd_text,
             work_mode,
             pace,
             interaction,
-            source: "mcp",
           }),
         });
         const data = await response.json();
@@ -190,7 +218,7 @@ function createServer(): McpServer {
     },
     async ({ brief_id }) => {
       try {
-        const response = await fetch(`${API_BASE}/brief/${brief_id}`);
+        const response = await fetch(`${API_BASE}/brief/${brief_id}`, { headers: baseGetHeaders });
         const data = await response.json();
         if (!response.ok) {
           return {
@@ -241,7 +269,7 @@ function createServer(): McpServer {
     },
     async () => {
       try {
-        const response = await fetch(`${API_BASE}/dimensions`);
+        const response = await fetch(`${API_BASE}/dimensions`, { headers: baseGetHeaders });
         const data = await response.json();
         if (!response.ok) {
           return {
@@ -292,7 +320,7 @@ function createServer(): McpServer {
     },
     async () => {
       try {
-        const response = await fetch(`${API_BASE}/stats`);
+        const response = await fetch(`${API_BASE}/stats`, { headers: baseGetHeaders });
         const data = await response.json();
         if (!response.ok) {
           return {
@@ -352,7 +380,7 @@ function createServer(): McpServer {
       try {
         const response = await fetch(`${APP_BASE}/rpc/enrich-brief`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: baseJsonHeaders,
           body: JSON.stringify({ brief_id }),
         });
         const data = await response.json();
@@ -449,7 +477,7 @@ function createServer(): McpServer {
         if (age_max !== undefined) params.set("age_max", String(age_max));
         const qs = params.toString();
         const url = `${API_BASE}/brief/${brief_id}/population-check-external${qs ? `?${qs}` : ""}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { headers: baseGetHeaders });
         const data = await response.json();
         if (!response.ok) {
           return {
@@ -491,7 +519,14 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, mcp-session-id"
+    "Content-Type, Authorization, mcp-session-id"
+  );
+  // MCP OAuth discovery: when clients hit this server unauthenticated and our
+  // upstream returns 401, they look for WWW-Authenticate to find the auth
+  // server. We always advertise it so well-behaved clients can pick it up.
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer resource_metadata="https://hire.korture.com/.well-known/oauth-protected-resource"`
   );
 
   if (req.method === "OPTIONS") {
@@ -499,7 +534,24 @@ export default async function handler(
   }
 
   if (req.method === "POST") {
-    const server = createServer();
+    // Build the set of headers to forward on every fetch to hire.korture.com.
+    // Trust boundary: X-Korture-Channel is only honored upstream when the
+    // gateway secret matches. Without the secret, REST treats the call as
+    // channel="rest" regardless of this header.
+    const forwardHeaders: Record<string, string> = {};
+    if (typeof req.headers.authorization === "string") {
+      forwardHeaders["Authorization"] = req.headers.authorization;
+    }
+    const ua = typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"] : "";
+    if (ua) forwardHeaders["User-Agent"] = ua;
+    forwardHeaders["X-Korture-Client"] = inferClient(ua);
+    forwardHeaders["X-Korture-Channel"] = "mcp";
+    const gatewaySecret = process.env.MCP_GATEWAY_SECRET;
+    if (gatewaySecret) {
+      forwardHeaders["X-Korture-Gateway-Secret"] = gatewaySecret;
+    }
+
+    const server = createServer({ forwardHeaders });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

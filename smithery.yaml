@@ -1,0 +1,41 @@
+# Smithery.ai MCP server manifest
+# https://smithery.ai/docs/config
+
+name: korture-mcp
+displayName: Korture
+description: Behavioral hiring briefs for any job description. Generates a measurement brief with 5 behavioral dimensions, evidence trees, trade-offs, and role-specific interview questions.
+homepage: https://hire.korture.com
+repository: https://github.com/skprasad-korture/korture-mcp
+license: Apache-2.0
+
+# Remote MCP server (no install required)
+runtime: remote
+endpoint: https://korture-mcp-server.vercel.app/api/mcp
+transport: streamable-http
+
+# OAuth 2.1 discovery (MCP spec 2025-03-26)
+authorizationServerMetadata: https://hire.korture.com/.well-known/oauth-authorization-server
+protectedResourceMetadata: https://hire.korture.com/.well-known/oauth-protected-resource
+
+categories:
+  - hiring
+  - recruiting
+  - behavioral-analysis
+  - job-descriptions
+
+tags:
+  - behavioral-hiring
+  - interview-preparation
+  - job-description-analysis
+  - riasec
+  - onet
+  - korture
+
+tools:
+  - validate_jd
+  - create_brief
+  - get_brief
+  - enrich_brief
+  - get_dimensions
+  - get_stats
+  - get_external_population_check
