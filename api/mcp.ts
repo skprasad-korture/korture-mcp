@@ -510,6 +510,32 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
   return server;
 }
 
+/**
+ * Tools that require the caller to be authenticated (per MCP spec 2025-06-18).
+ * Unauthenticated calls to these tools trigger an HTTP 401 with WWW-Authenticate
+ * so the MCP client walks the OAuth 2.1 + PKCE flow.
+ */
+const AUTH_REQUIRED_TOOLS = new Set<string>(["create_brief", "enrich_brief"]);
+
+const WWW_AUTH_HEADER =
+  `Bearer resource_metadata="https://korture-mcp-server.vercel.app/.well-known/oauth-protected-resource"`;
+
+function hasBearerToken(req: VercelRequest): boolean {
+  const h = req.headers.authorization;
+  if (typeof h !== "string") return false;
+  if (!h.toLowerCase().startsWith("bearer ")) return false;
+  return h.slice(7).trim().length > 0;
+}
+
+function toolNameFromBody(body: unknown): string | null {
+  if (!body || typeof body !== "object") return null;
+  const msg = body as Record<string, unknown>;
+  if (msg.method !== "tools/call") return null;
+  const params = msg.params as Record<string, unknown> | undefined;
+  const name = params?.name;
+  return typeof name === "string" ? name : null;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -521,19 +547,29 @@ export default async function handler(
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, mcp-session-id"
   );
-  // MCP OAuth discovery: when clients hit this server unauthenticated and our
-  // upstream returns 401, they look for WWW-Authenticate to find the auth
-  // server. We always advertise it so well-behaved clients can pick it up.
-  res.setHeader(
-    "WWW-Authenticate",
-    `Bearer resource_metadata="https://hire.korture.com/.well-known/oauth-protected-resource"`
-  );
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
 
   if (req.method === "POST") {
+    // -----------------------------------------------------------------------
+    // MCP OAuth gate (spec 2025-06-18):
+    // If the caller is invoking an auth-required tool without a Bearer token,
+    // respond with REAL HTTP 401 and WWW-Authenticate so the MCP client walks
+    // the OAuth flow. MUST be HTTP status 401, not a JSON-RPC wrapped error —
+    // clients only trigger OAuth on transport-level 401s.
+    // -----------------------------------------------------------------------
+    const toolName = toolNameFromBody(req.body);
+    if (toolName && AUTH_REQUIRED_TOOLS.has(toolName) && !hasBearerToken(req)) {
+      res.setHeader("WWW-Authenticate", WWW_AUTH_HEADER);
+      res.setHeader("Content-Type", "application/json");
+      return res.status(401).json({
+        error: "invalid_token",
+        error_description: `Tool "${toolName}" requires authentication. Sign in to continue.`,
+      });
+    }
+
     // Build the set of headers to forward on every fetch to hire.korture.com.
     // Trust boundary: X-Korture-Channel is only honored upstream when the
     // gateway secret matches. Without the secret, REST treats the call as
