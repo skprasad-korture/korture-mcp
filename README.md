@@ -66,11 +66,18 @@ If you previously connected to `https://korture-mcp-server.vercel.app/api/mcp`,
 update the URL above and re-authenticate. The old URL still serves traffic via
 a redirect, but the canonical address from now on is `mcp.korture.com`.
 
-## Connecting from ChatGPT, Cursor, and other MCP clients
+## Connecting from Cursor (one click)
+
+[![Add to Cursor](https://cursor.com/deeplink/mcp-install-light.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=korture-hiring&config=eyJ1cmwiOiJodHRwczovL21jcC5rb3J0dXJlLmNvbS9hcGkvbWNwIn0=)
+
+Click the button above in a browser that has Cursor installed. Cursor opens
+with the server name and URL pre-filled, you confirm and save.
+
+## Connecting from ChatGPT and other MCP clients
 
 Any MCP client that supports remote Streamable HTTP servers will work with the
-same URL. Cursor users can add a one-click button by linking to the
-`Add to Cursor` deeplink referenced in the docs.
+same URL: `https://mcp.korture.com/api/mcp`. ChatGPT desktop and the official
+ChatGPT app directory entry both use this address.
 
 ## Connecting without an account
 
