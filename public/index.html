@@ -42,25 +42,32 @@
         display: flex;
         flex-direction: column;
       }
+      header.site {
+        border-bottom: 1px solid var(--border);
+        padding: 18px 28px;
+      }
+      header.site .row {
+        max-width: 720px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      header.site .logo {
+        display: inline-flex;
+        align-items: center;
+      }
+      header.site .logo img { height: 28px; display: block; }
+      header.site .label {
+        font-size: 14px;
+        color: var(--muted);
+      }
       main {
         flex: 1;
         max-width: 720px;
         width: 100%;
         margin: 0 auto;
-        padding: 80px 28px 64px;
-      }
-      .mark {
-        display: inline-flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 48px;
-      }
-      .mark img { width: 32px; height: 32px; display: block; }
-      .mark span {
-        font-size: 14px;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--muted);
+        padding: 56px 28px 64px;
       }
       h1 {
         font-size: clamp(28px, 4vw, 40px);
@@ -165,12 +172,15 @@
     </style>
   </head>
   <body>
-    <main>
-      <div class="mark">
-        <img src="/korture-bee-icon.svg" alt="Korture" />
-        <span>Korture Hiring MCP</span>
+    <header class="site">
+      <div class="row">
+        <a class="logo" href="https://www.korture.com" rel="noopener">
+          <img src="/korture-logo-dark.svg" alt="Korture" />
+        </a>
+        <span class="label">Hiring MCP</span>
       </div>
-
+    </header>
+    <main>
       <h1>
         Paste a JD into Claude or ChatGPT, get the five behaviours that
         <span class="accent">actually matter</span>.
