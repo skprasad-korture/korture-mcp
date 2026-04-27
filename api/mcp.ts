@@ -132,10 +132,14 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
     {
       title: "Create Behavioral Brief",
       description:
-        "Generate a behavioral brief from a job description. Analyzes the JD " +
-        "using AI to identify 5 key behavioral dimensions with demand levels " +
-        "(1-5 scale), evidence trees tracing each dimension back to JD phrases, " +
-        "and tailored interview questions. Takes 8-12 seconds due to AI generation. " +
+        "Generate a behavioral brief from a job description. Requires the user " +
+        "to be authenticated with their Korture account. If the user has not " +
+        "yet connected, this tool will return 401 and the host (Claude Desktop, " +
+        "ChatGPT, Cursor) will surface a Connect button. Tell the user to click " +
+        "Connect to sign in via email OTP, then retry this tool.\n\n" +
+        "Analyzes the JD using AI to identify 5 key behavioral dimensions with " +
+        "demand levels (1-5 scale), evidence trees tracing each dimension back " +
+        "to JD phrases, and tailored interview questions. Takes 8-12 seconds. " +
         "Call validate_jd first to check JD quality.\n\n" +
         "The three sharpening parameters (work_mode, pace, interaction) help the " +
         "AI calibrate which behavioral dimensions matter most for this specific role.\n\n" +
@@ -540,29 +544,27 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
 }
 
 /**
- * Tools that require the caller to be authenticated (per MCP spec 2025-06-18).
- * Unauthenticated calls to these tools trigger an HTTP 401 with WWW-Authenticate
- * so the MCP client walks the OAuth 2.1 + PKCE flow.
+ * Per the MCP spec 2025-06-18, an MCP server that requires authentication MUST
+ * respond with HTTP 401 + WWW-Authenticate on the first unauthenticated request
+ * so the client walks the OAuth 2.1 + PKCE discovery flow upfront. Sanity and
+ * PostHog gate every request (initialize, tools/list, tools/call) this way,
+ * which is why their hosts (Claude Desktop, ChatGPT) surface a Connect button
+ * during install rather than burying it behind the first auth-required tool
+ * call.
+ *
+ * Korture Hiring is for hiring managers with a Korture account, so we adopt
+ * the same posture: every POST without a Bearer token is rejected at the
+ * transport layer with a real HTTP 401 (not a JSON-RPC error), forcing the
+ * client to authenticate before any tool is even visible.
  */
-const AUTH_REQUIRED_TOOLS = new Set<string>(["create_brief", "enrich_brief"]);
-
 const WWW_AUTH_HEADER =
-  `Bearer resource_metadata="https://korture-mcp-server.vercel.app/.well-known/oauth-protected-resource"`;
+  `Bearer resource_metadata="https://mcp.korture.com/.well-known/oauth-protected-resource"`;
 
 function hasBearerToken(req: VercelRequest): boolean {
   const h = req.headers.authorization;
   if (typeof h !== "string") return false;
   if (!h.toLowerCase().startsWith("bearer ")) return false;
   return h.slice(7).trim().length > 0;
-}
-
-function toolNameFromBody(body: unknown): string | null {
-  if (!body || typeof body !== "object") return null;
-  const msg = body as Record<string, unknown>;
-  if (msg.method !== "tools/call") return null;
-  const params = msg.params as Record<string, unknown> | undefined;
-  const name = params?.name;
-  return typeof name === "string" ? name : null;
 }
 
 export default async function handler(
@@ -584,18 +586,22 @@ export default async function handler(
   if (req.method === "POST") {
     // -----------------------------------------------------------------------
     // MCP OAuth gate (spec 2025-06-18):
-    // If the caller is invoking an auth-required tool without a Bearer token,
-    // respond with REAL HTTP 401 and WWW-Authenticate so the MCP client walks
-    // the OAuth flow. MUST be HTTP status 401, not a JSON-RPC wrapped error —
-    // clients only trigger OAuth on transport-level 401s.
+    // Reject every unauthenticated POST with a real HTTP 401 + WWW-Authenticate
+    // so the MCP client walks the OAuth 2.1 + PKCE discovery flow before any
+    // tool is even listed. This makes Claude Desktop / ChatGPT / Cursor surface
+    // a Connect button on the connector-add page rather than burying it behind
+    // the first auth-required tool call. Same posture as Sanity and PostHog.
+    //
+    // MUST return transport-level 401 (not a JSON-RPC wrapped error), because
+    // hosts only trigger their OAuth flow on real HTTP 401 responses.
     // -----------------------------------------------------------------------
-    const toolName = toolNameFromBody(req.body);
-    if (toolName && AUTH_REQUIRED_TOOLS.has(toolName) && !hasBearerToken(req)) {
+    if (!hasBearerToken(req)) {
       res.setHeader("WWW-Authenticate", WWW_AUTH_HEADER);
       res.setHeader("Content-Type", "application/json");
       return res.status(401).json({
         error: "invalid_token",
-        error_description: `Tool "${toolName}" requires authentication. Sign in to continue.`,
+        error_description:
+          "Korture Hiring requires a Korture account. Sign in to continue.",
       });
     }
 

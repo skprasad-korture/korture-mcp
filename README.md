@@ -59,8 +59,29 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-Quit Claude Desktop fully and reopen. On first use, the OAuth flow asks you to
-sign in to your Korture account by email OTP, no password.
+Quit Claude Desktop fully and reopen. The connector appears in your tray.
+
+### First time you connect
+
+The connector requires a Korture account. After you add it, Claude Desktop
+shows a **Connect** button on its connectors page. Click it. You will be
+sent to `hire.korture.com` to authenticate via email OTP, no password.
+Authentication takes about 20 seconds.
+
+Once you finish, return to Claude Desktop. All seven tools become available.
+Your account is remembered until you revoke it from the connectors page.
+
+### After you have a brief
+
+Every successful `create_brief`, `enrich_brief`, and `get_brief` response
+includes a `next_steps` block with two URLs:
+
+- `next_steps.view_brief` — the brief on korture.com
+- `next_steps.add_candidates` — the page where you add candidates and copy
+  per-candidate scan links to send
+
+Claude will surface these to you at the end of the response. Open them in
+your browser to continue the workflow.
 
 If you previously connected to `https://korture-mcp-server.vercel.app/api/mcp`,
 update the URL above and re-authenticate. The old URL still serves traffic via
@@ -79,12 +100,6 @@ Any MCP client that supports remote Streamable HTTP servers will work with the
 same URL: `https://mcp.korture.com/api/mcp`. ChatGPT desktop and the official
 ChatGPT app directory entry both use this address.
 
-## Connecting without an account
-
-The server also accepts unauthenticated requests. Anonymous callers share a
-per-IP daily limit. Sign in for higher limits and to attribute briefs to your
-Korture account.
-
 ## Authentication
 
 The server participates in OAuth 2.1 with PKCE (RFC 6749 + 7636, per the MCP
@@ -97,8 +112,9 @@ spec). It advertises:
 MCP clients that implement DCR register themselves automatically. For
 service-to-service callers, an internal-tier API key is available on request.
 
-Rate limits are tier-based. Internal and admin tiers are unlimited; free tier
-is 10 briefs/day; anonymous is 5/day/IP.
+Rate limits are tier-based. Internal and admin tiers are unlimited; the
+free tier is 10 briefs per day. The MCP server does not accept unauthenticated
+calls.
 
 ## Source and deployment
 
