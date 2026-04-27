@@ -4,3 +4,6 @@ dist/
 .env
 .env.local
 .vercel
+
+# MCP Registry DNS auth keypair, never commit
+.local/
