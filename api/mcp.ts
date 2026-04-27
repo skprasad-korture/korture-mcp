@@ -7,6 +7,32 @@ const API_BASE = "https://hire.korture.com/api/v1";
 const APP_BASE = "https://hire.korture.com";
 
 /**
+ * Surface the next-step URLs for any response that carries a brief id.
+ * Keeps the MCP layer in sync with the manager journey on korture.com:
+ *   1. View the brief
+ *   2. Add candidates and copy the assess link
+ *   3. Review candidate results once the assessment is completed
+ *
+ * The shape is unobtrusive: a single `next_steps` block the LLM caller can
+ * surface to the user. It does not modify any existing fields.
+ */
+function withNextSteps(data: unknown): unknown {
+  if (data == null || typeof data !== "object" || Array.isArray(data)) return data;
+  const obj = data as Record<string, unknown>;
+  const briefIdCandidate = obj.brief_id ?? obj.id;
+  if (typeof briefIdCandidate !== "string" || briefIdCandidate.length === 0) return data;
+  return {
+    ...obj,
+    next_steps: {
+      view_brief: `${APP_BASE}/brief/${briefIdCandidate}`,
+      add_candidates: `${APP_BASE}/brief/${briefIdCandidate}/candidates`,
+      message:
+        "Open the brief on korture.com to add candidates, copy each assess link, and review their results once they complete the assessment.",
+    },
+  };
+}
+
+/**
  * Identify the calling MCP client from the HTTP User-Agent.
  * Cheap heuristic, used for the X-Korture-Client header — REST resolveAuth
  * treats this as a hint (not a trust boundary).
@@ -112,7 +138,10 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
         "and tailored interview questions. Takes 8-12 seconds due to AI generation. " +
         "Call validate_jd first to check JD quality.\n\n" +
         "The three sharpening parameters (work_mode, pace, interaction) help the " +
-        "AI calibrate which behavioral dimensions matter most for this specific role.",
+        "AI calibrate which behavioral dimensions matter most for this specific role.\n\n" +
+        "After returning the brief, surface the next_steps.view_brief and " +
+        "next_steps.add_candidates URLs so the user can open the brief on " +
+        "korture.com to send the assessment to candidates and review their results.",
       inputSchema: {
         role_title: z
           .string()
@@ -177,7 +206,7 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(withNextSteps(data), null, 2) }],
         };
       } catch (error) {
         return {
@@ -232,7 +261,7 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(withNextSteps(data), null, 2) }],
         };
       } catch (error) {
         return {
@@ -396,7 +425,7 @@ function createServer({ forwardHeaders }: CreateServerOptions): McpServer {
           };
         }
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(withNextSteps(data), null, 2) }],
         };
       } catch (error) {
         return {

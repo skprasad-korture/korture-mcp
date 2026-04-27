@@ -24,11 +24,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
   return res.status(200).json({
-    resource: "https://korture-mcp-server.vercel.app",
+    resource: "https://mcp.korture.com",
     authorization_servers: ["https://hire.korture.com"],
     scopes_supported: ["mcp"],
     bearer_methods_supported: ["header"],
     resource_documentation: "https://github.com/skprasad-korture/korture-mcp",
-    resource_name: "Korture behavioral hiring MCP",
+    resource_name: "Korture Hiring MCP",
   });
 }

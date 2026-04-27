@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Korture Hiring MCP</title>
+    <meta
+      name="description"
+      content="A remote MCP server that turns a job description into a behavioural measurement brief. Free with a Korture account."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#895CF5" />
+    <meta property="og:title" content="Korture Hiring MCP" />
+    <meta
+      property="og:description"
+      content="Paste a job description into Claude, ChatGPT, or Cursor, and get the 5 behaviours that actually matter for the role, the evidence behind each, demand levels, interview questions, and a population reality check."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mcp.korture.com" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0e1117;
+        --fg: #e6e7eb;
+        --muted: #8b8f99;
+        --violet: #895cf5;
+        --card: #161a23;
+        --border: #232838;
+        --radius: 12px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.55;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      main {
+        flex: 1;
+        max-width: 720px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 80px 28px 64px;
+      }
+      .mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 48px;
+      }
+      .mark img { width: 32px; height: 32px; display: block; }
+      .mark span {
+        font-size: 14px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 40px);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+        margin: 0 0 16px;
+      }
+      h1 .accent { color: var(--violet); }
+      .lede {
+        font-size: 17px;
+        color: var(--fg);
+        margin: 0 0 28px;
+      }
+      .endpoint {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 14px;
+        color: var(--fg);
+        margin: 0 0 32px;
+        word-break: break-all;
+      }
+      .endpoint .label {
+        display: block;
+        font-family: inherit;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      h2 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 32px 0 12px;
+        font-weight: 600;
+      }
+      ul.tools {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 24px;
+        display: grid;
+        gap: 8px;
+      }
+      ul.tools li {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 14px;
+      }
+      ul.tools code {
+        color: var(--violet);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+      a.btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 15px;
+        transition: transform 0.08s ease, opacity 0.15s ease;
+      }
+      a.btn:active { transform: translateY(1px); }
+      a.primary {
+        background: var(--violet);
+        color: white;
+      }
+      a.primary:hover { opacity: 0.92; }
+      a.secondary {
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--border);
+      }
+      a.secondary:hover { border-color: var(--violet); color: var(--violet); }
+      footer {
+        max-width: 720px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 24px 28px 40px;
+        font-size: 13px;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+      }
+      footer a { color: var(--muted); }
+      footer a:hover { color: var(--fg); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">
+        <img src="/korture-bee-icon.svg" alt="Korture" />
+        <span>Korture Hiring MCP</span>
+      </div>
+
+      <h1>
+        Paste a JD into Claude or ChatGPT, get the five behaviours that
+        <span class="accent">actually matter</span>.
+      </h1>
+
+      <p class="lede">
+        Korture Hiring is a remote Model Context Protocol server for hiring
+        managers. It turns a job description into a behavioural measurement
+        brief, the evidence behind each behaviour, demand levels, interview
+        questions, and a population reality check on how rare this hire really
+        is. Free to use with a Korture account.
+      </p>
+
+      <div class="endpoint">
+        <span class="label">MCP endpoint</span>
+        https://mcp.korture.com/api/mcp
+      </div>
+
+      <h2>What this server exposes</h2>
+      <ul class="tools">
+        <li><code>validate_jd</code> — confirm the JD has enough signal to analyse.</li>
+        <li><code>create_brief</code> — turn the JD into the full measurement brief.</li>
+        <li><code>enrich_brief</code> — add depth based on follow-up answers.</li>
+        <li><code>get_brief</code> — retrieve a brief by id.</li>
+        <li><code>get_dimensions</code> — list the 15 behavioural dimensions Korture can measure.</li>
+        <li><code>get_external_population_check</code> — how rare this hire really is in the labour market.</li>
+        <li><code>get_stats</code> — aggregate stats about the Korture corpus.</li>
+      </ul>
+
+      <h2>After you have a brief</h2>
+      <p class="lede" style="margin-bottom: 8px;">
+        The MCP returns the brief and a link back to korture.com. Open it there
+        to send the scan to candidates and review their results once they
+        complete the assessment.
+      </p>
+
+      <div class="actions">
+        <a class="primary btn" href="https://www.korture.com" rel="noopener">
+          Get a Korture account
+        </a>
+        <a
+          class="secondary btn"
+          href="https://github.com/korture/korture-mcp-server#connecting-from-claude-desktop"
+          rel="noopener"
+        >
+          Connect from Claude or ChatGPT
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <a href="https://www.korture.com">korture.com</a>
+      &nbsp;·&nbsp;
+      <a href="https://www.korture.com/privacy">Privacy</a>
+      &nbsp;·&nbsp;
+      <a href="https://www.korture.com/terms">Terms</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/korture/korture-mcp-server">Source</a>
+    </footer>
+  </body>
+</html>
